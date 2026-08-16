@@ -3,16 +3,18 @@
 
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Face Enrollment</title>
+
+  <title>Student Attendance</title>
 
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
   <style>
+
     body {
       font-family: Arial, sans-serif;
       background: #f2f4f7;
       margin: 0;
-      padding: 25px 15px;
+      padding: 30px 15px;
     }
 
     .container {
@@ -25,23 +27,24 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     }
 
-    input, select, button {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 13px;
-      margin-top: 12px;
-      border-radius: 7px;
-      font-size: 16px;
+    h1 {
+      margin-bottom: 15px;
     }
 
-    input, select {
-      border: 1px solid #ccc;
+    .session {
+      font-weight: bold;
+      margin: 15px 0;
     }
 
     button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 15px;
       border: none;
+      border-radius: 7px;
       background: #1976d2;
       color: white;
+      font-size: 17px;
       cursor: pointer;
     }
 
@@ -55,49 +58,46 @@
       margin-top: 20px;
       border-radius: 10px;
       background: black;
+
+      /* Mirror camera preview */
       transform: scaleX(-1);
     }
 
     #status {
       margin-top: 20px;
       font-weight: bold;
+      line-height: 1.5;
     }
+
   </style>
+
 </head>
+
 
 <body>
 
 <div class="container">
 
-  <h1>Student Face Enrollment</h1>
+  <h1>Student Attendance</h1>
 
-  <input
-    type="text"
-    id="pid"
-    placeholder="Enter PID"
-  >
+  <p>
+    Attendance Session Active ✅
+  </p>
 
-  <input
-    type="text"
-    id="studentName"
-    placeholder="Enter Student Name"
-  >
+  <div class="session">
+    Session ID:
+    <span id="sessionText">Loading...</span>
+  </div>
 
-  <select id="className">
 
-    <option value="">
-      -- Select Class --
-    </option>
+  <button
+    id="cameraBtn"
+    onclick="openCamera()">
 
-    <option value="B.Tech CSE 2nd Year">
-      B.Tech CSE 2nd Year
-    </option>
-
-  </select>
-
-  <button onclick="openCamera()">
     OPEN CAMERA
+
   </button>
+
 
   <video
     id="camera"
@@ -105,21 +105,28 @@
     playsinline>
   </video>
 
+
   <button
-    id="registerBtn"
-    onclick="registerFace()"
+    id="verifyBtn"
+    onclick="verifyFace()"
     disabled>
-    REGISTER FACE
+
+    VERIFY FACE
+
   </button>
 
+
   <div id="status">
+
     Loading face recognition...
+
   </div>
 
 </div>
 
 
 <script>
+
 
 // ==========================================
 // GOOGLE APPS SCRIPT URL
@@ -138,6 +145,26 @@ const MODEL_URL =
 
 
 // ==========================================
+// GET SESSION ID FROM QR URL
+// ==========================================
+
+const params =
+new URLSearchParams(
+  window.location.search
+);
+
+
+const sessionId =
+params.get("session");
+
+
+document.getElementById(
+  "sessionText"
+).innerText =
+sessionId || "Not Found";
+
+
+// ==========================================
 // LOAD FACE MODELS
 // ==========================================
 
@@ -149,28 +176,34 @@ async function loadModels() {
   status.innerText =
     "Loading face recognition...";
 
+
   try {
 
     await faceapi.nets.ssdMobilenetv1
       .loadFromUri(MODEL_URL);
 
+
     await faceapi.nets.faceLandmark68Net
       .loadFromUri(MODEL_URL);
+
 
     await faceapi.nets.faceRecognitionNet
       .loadFromUri(MODEL_URL);
 
+
     status.innerText =
       "Face recognition ready ✅";
 
+
   }
 
-  catch (error) {
+  catch(error) {
 
     console.error(error);
 
     status.innerText =
-      "Model Error: " + error.message;
+      "Model Error: " +
+      error.message;
 
   }
 
@@ -189,8 +222,10 @@ async function openCamera() {
   const status =
     document.getElementById("status");
 
+
   status.innerText =
     "Requesting camera permission...";
+
 
   try {
 
@@ -205,28 +240,42 @@ async function openCamera() {
 
     }
 
+
     const stream =
       await navigator.mediaDevices.getUserMedia({
-        video: true,
+
+        video: {
+          facingMode: "user"
+        },
+
         audio: false
+
       });
 
-    video.srcObject = stream;
+
+    video.srcObject =
+      stream;
+
 
     status.innerText =
-      "Camera is working ✅ Please keep your face in front of the camera.";
+      "Camera is working ✅\n" +
+      "Face camera ke saamne rakho.";
 
-    document.getElementById("registerBtn")
-      .disabled = false;
+
+    document.getElementById(
+      "verifyBtn"
+    ).disabled = false;
+
 
   }
 
-  catch (error) {
+  catch(error) {
 
     console.error(error);
 
     status.innerText =
-      "Camera Error: " + error.message;
+      "Camera Error: " +
+      error.message;
 
   }
 
@@ -234,34 +283,34 @@ async function openCamera() {
 
 
 // ==========================================
-// REGISTER FACE
+// VERIFY FACE
 // ==========================================
 
-async function registerFace() {
+async function verifyFace() {
 
-  const pid =
-    document.getElementById("pid").value.trim();
+  const video =
+    document.getElementById("camera");
 
-  const name =
-    document.getElementById("studentName").value.trim();
+  const status =
+    document.getElementById("status");
 
-  const className =
-    document.getElementById("className").value;
+  const verifyBtn =
+    document.getElementById("verifyBtn");
 
 
-  if (!pid || !name || !className) {
+  if (!sessionId) {
 
-    alert(
-      "PID, Student Name and Class are required."
-    );
+    status.innerText =
+      "Session ID not found ❌";
 
     return;
 
   }
 
 
-  const status =
-    document.getElementById("status");
+  verifyBtn.disabled =
+    true;
+
 
   status.innerText =
     "Detecting face...";
@@ -269,9 +318,9 @@ async function registerFace() {
 
   try {
 
-    const video =
-      document.getElementById("camera");
-
+    // ======================================
+    // DETECT FACE
+    // ======================================
 
     const detection =
       await faceapi
@@ -286,30 +335,40 @@ async function registerFace() {
     if (!detection) {
 
       status.innerText =
-        "Face not detected ❌ Please look at the camera.";
+        "Face not detected ❌\n" +
+        "Face camera ke saamne rakho.";
+
+      verifyBtn.disabled =
+        false;
 
       return;
 
     }
 
 
-    // 128-number face embedding
+    status.innerText =
+      "Face detected ✅\n" +
+      "Verifying face...";
+
+
+    // ======================================
+    // GET 128 NUMBER FACE EMBEDDING
+    // ======================================
 
     const embedding =
-      Array.from(detection.descriptor);
+      Array.from(
+        detection.descriptor
+      );
 
 
-    status.innerText =
-      "Face detected ✅ Saving...";
-
-
-    // ========================================
-    // SEND FACE DATA TO GOOGLE APPS SCRIPT
-    // ========================================
+    // ======================================
+    // SEND TO GOOGLE APPS SCRIPT
+    // ======================================
 
     await fetch(
       SCRIPT_URL,
       {
+
         method: "POST",
 
         mode: "no-cors",
@@ -320,15 +379,14 @@ async function registerFace() {
 
         body: JSON.stringify({
 
-          action: "saveFace",
+          action:
+            "verifyFace",
 
-          pid: pid,
+          sessionId:
+            sessionId,
 
-          studentName: name,
-
-          className: className,
-
-          embedding: embedding
+          embedding:
+            embedding
 
         })
 
@@ -336,18 +394,36 @@ async function registerFace() {
     );
 
 
+    // ======================================
+    // IMPORTANT
+    // ======================================
+    //
+    // no-cors response browser mein
+    // read nahi ho sakta.
+    //
+    // Lekin Apps Script request receive
+    // karke Attendance_Logs mein attendance
+    // mark karega.
+    //
+
+
     status.innerText =
-      "Face registration request sent ✅";
+      "Face verification request sent ✅\n" +
+      "Attendance process complete.";
+
 
   }
 
-  catch (error) {
+  catch(error) {
 
     console.error(error);
 
     status.innerText =
-      "Face Recognition Error: " +
+      "Face Verification Error: " +
       error.message;
+
+    verifyBtn.disabled =
+      false;
 
   }
 
@@ -363,7 +439,9 @@ window.addEventListener(
   loadModels
 );
 
+
 </script>
 
 </body>
+
 </html>
