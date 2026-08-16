@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Face Enrollment</title>
 
-  <!-- Face API -->
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
   <style>
@@ -48,15 +47,16 @@
 
     button:disabled {
       background: #999;
+      cursor: not-allowed;
     }
 
     video {
-  width: 100%;
-  margin-top: 20px;
-  border-radius: 10px;
-  background: black;
-  transform: scaleX(-1);
-   }
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 10px;
+      background: black;
+      transform: scaleX(-1);
+    }
 
     #status {
       margin-top: 20px;
@@ -84,11 +84,15 @@
   >
 
   <select id="className">
-    <option value="">-- Select Class --</option>
+
+    <option value="">
+      -- Select Class --
+    </option>
 
     <option value="B.Tech CSE 2nd Year">
       B.Tech CSE 2nd Year
     </option>
+
   </select>
 
   <button onclick="openCamera()">
@@ -134,10 +138,16 @@ const MODEL_URL =
 
 
 // ==========================================
-// LOAD MODELS
+// LOAD FACE MODELS
 // ==========================================
 
 async function loadModels() {
+
+  const status =
+    document.getElementById("status");
+
+  status.innerText =
+    "Loading face recognition...";
 
   try {
 
@@ -150,14 +160,16 @@ async function loadModels() {
     await faceapi.nets.faceRecognitionNet
       .loadFromUri(MODEL_URL);
 
-    document.getElementById("status").innerText =
+    status.innerText =
       "Face recognition ready ✅";
 
   }
 
-  catch(error) {
+  catch (error) {
 
-    document.getElementById("status").innerText =
+    console.error(error);
+
+    status.innerText =
       "Model Error: " + error.message;
 
   }
@@ -182,6 +194,17 @@ async function openCamera() {
 
   try {
 
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      throw new Error(
+        "Camera is not supported by this browser."
+      );
+
+    }
+
     const stream =
       await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -191,15 +214,16 @@ async function openCamera() {
     video.srcObject = stream;
 
     status.innerText =
-      "Camera is working ✅
-Please keep your face in front of the camera.";
+      "Camera is working ✅ Please keep your face in front of the camera.";
 
     document.getElementById("registerBtn")
       .disabled = false;
 
   }
 
-  catch(error) {
+  catch (error) {
+
+    console.error(error);
 
     status.innerText =
       "Camera Error: " + error.message;
@@ -228,7 +252,7 @@ async function registerFace() {
   if (!pid || !name || !className) {
 
     alert(
-      "PID, Student Name and Class required."
+      "PID, Student Name and Class are required."
     );
 
     return;
@@ -236,7 +260,10 @@ async function registerFace() {
   }
 
 
-  document.getElementById("status").innerText =
+  const status =
+    document.getElementById("status");
+
+  status.innerText =
     "Detecting face...";
 
 
@@ -258,8 +285,8 @@ async function registerFace() {
 
     if (!detection) {
 
-      document.getElementById("status").innerText =
-        "Face not detected ❌ Please look at camera.";
+      status.innerText =
+        "Face not detected ❌ Please look at the camera.";
 
       return;
 
@@ -267,54 +294,58 @@ async function registerFace() {
 
 
     // 128-number face embedding
+
     const embedding =
       Array.from(detection.descriptor);
 
 
-    document.getElementById("status").innerText =
+    status.innerText =
       "Face detected ✅ Saving...";
 
 
     // ========================================
-    // SEND TO GOOGLE APPS SCRIPT
+    // SEND FACE DATA TO GOOGLE APPS SCRIPT
     // ========================================
 
-    await fetch(SCRIPT_URL, {
+    await fetch(
+      SCRIPT_URL,
+      {
+        method: "POST",
 
-      method: "POST",
+        mode: "no-cors",
 
-      mode: "no-cors",
+        headers: {
+          "Content-Type": "text/plain"
+        },
 
-      headers: {
-        "Content-Type": "text/plain"
-      },
+        body: JSON.stringify({
 
-      body: JSON.stringify({
+          action: "saveFace",
 
-        action: "saveFace",
+          pid: pid,
 
-        pid: pid,
+          studentName: name,
 
-        studentName: name,
+          className: className,
 
-        className: className,
+          embedding: embedding
 
-        embedding: embedding
+        })
 
-      })
-
-    });
+      }
+    );
 
 
-    document.getElementById("status").innerText =
+    status.innerText =
       "Face registration request sent ✅";
-
 
   }
 
-  catch(error) {
+  catch (error) {
 
-    document.getElementById("status").innerText =
+    console.error(error);
+
+    status.innerText =
       "Face Recognition Error: " +
       error.message;
 
@@ -327,7 +358,10 @@ async function registerFace() {
 // START
 // ==========================================
 
-window.onload = loadModels;
+window.addEventListener(
+  "load",
+  loadModels
+);
 
 </script>
 
