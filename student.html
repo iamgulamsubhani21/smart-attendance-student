@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Attendance</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f4f7;
+      margin: 0;
+      padding: 30px 15px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 7px;
+      background: #1976d2;
+      color: white;
+      font-size: 17px;
+    }
+
+    video {
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 10px;
+      background: black;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>Student Attendance</h1>
+
+    <p>Attendance Session Active ✅</p>
+
+    <p id="sessionText"></p>
+
+    <button onclick="openCamera()">
+      OPEN CAMERA
+    </button>
+
+    <video id="camera" autoplay playsinline></video>
+
+    <div id="status">
+      Camera not started
+    </div>
+
+  </div>
+
+
+  <script>
+
+    // Get Session ID from URL
+    const params =
+      new URLSearchParams(window.location.search);
+
+    const sessionId =
+      params.get("session");
+
+
+    document.getElementById("sessionText")
+      .innerText =
+      "Session ID: " + (sessionId || "Not Found");
+
+
+    // Open Camera
+    function openCamera() {
+
+      const video =
+        document.getElementById("camera");
+
+      const status =
+        document.getElementById("status");
+
+
+      if (!navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia) {
+
+        status.innerText =
+          "Camera is not supported by this browser.";
+
+        return;
+      }
+
+
+      status.innerText =
+        "Requesting camera permission...";
+
+
+      navigator.mediaDevices
+        .getUserMedia({
+          video: {
+            facingMode: "user"
+          },
+          audio: false
+        })
+
+        .then(function(stream) {
+
+          video.srcObject = stream;
+
+          status.innerText =
+            "Camera is working ✅";
+
+        })
+
+        .catch(function(error) {
+
+          status.innerText =
+            "Camera Error: " + error.message;
+
+        });
+
+    }
+
+  </script>
+
+</body>
+
+</html>
