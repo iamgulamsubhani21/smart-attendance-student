@@ -115,13 +115,11 @@
         "Requesting camera permission...";
 
 
-      navigator.mediaDevices
-        .getUserMedia({
-          video: {
-            facingMode: "user"
-          },
-          audio: false
-        })
+     navigator.mediaDevices
+  .getUserMedia({
+    video: true,
+    audio: false
+  })
 
         .then(function(stream) {
 
