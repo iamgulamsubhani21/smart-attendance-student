@@ -1,1 +1,523 @@
+<!DOCTYPE html>
+<html>
 
+<head>
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>Student Face Enrollment</title>
+
+  <!-- Face API -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+
+  <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f4f7;
+      margin: 0;
+      padding: 25px 15px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 13px;
+      margin-top: 12px;
+      border-radius: 7px;
+      font-size: 16px;
+    }
+
+    input,
+    select {
+      border: 1px solid #ccc;
+    }
+
+    button {
+      border: none;
+      background: #1976d2;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    video {
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 10px;
+      background: black;
+
+      /* Mirror camera */
+      transform: scaleX(-1);
+    }
+
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+  <h1>Student Face Enrollment</h1>
+
+
+  <!-- PID -->
+
+  <input
+    type="text"
+    id="pid"
+    placeholder="Enter PID"
+  >
+
+
+  <!-- NAME -->
+
+  <input
+    type="text"
+    id="studentName"
+    placeholder="Enter Student Name"
+  >
+
+
+  <!-- CLASS -->
+
+  <select id="className">
+
+    <option value="">
+      -- Select Class --
+    </option>
+
+    <option value="B.Tech CSE 2nd Year">
+      B.Tech CSE 2nd Year
+    </option>
+
+  </select>
+
+
+  <!-- CAMERA BUTTON -->
+
+  <button
+    id="cameraBtn"
+    onclick="openCamera()">
+
+    OPEN CAMERA
+
+  </button>
+
+
+  <!-- CAMERA -->
+
+  <video
+    id="camera"
+    autoplay
+    playsinline>
+  </video>
+
+
+  <!-- REGISTER -->
+
+  <button
+    id="registerBtn"
+    onclick="registerFace()"
+    disabled>
+
+    REGISTER FACE
+
+  </button>
+
+
+  <div id="status">
+
+    Loading face recognition...
+
+  </div>
+
+
+</div>
+
+
+
+<script>
+
+
+// ==========================================
+// GOOGLE APPS SCRIPT URL
+// ==========================================
+
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbwy9mrcG_YRMltruegNF5Ai5KFRvWj1wSpuN2FzgixBO7No9v7R15PzXdynpk-kkwfF/exec";
+
+
+// ==========================================
+// FACE MODEL URL
+// ==========================================
+
+const MODEL_URL =
+"https://justadudewhohacks.github.io/face-api.js/models";
+
+
+// ==========================================
+// LOAD MODELS
+// ==========================================
+
+async function loadModels() {
+
+  const status =
+    document.getElementById("status");
+
+  status.innerText =
+    "Loading face recognition...";
+
+  try {
+
+    await faceapi.nets.ssdMobilenetv1
+      .loadFromUri(MODEL_URL);
+
+    await faceapi.nets.faceLandmark68Net
+      .loadFromUri(MODEL_URL);
+
+    await faceapi.nets.faceRecognitionNet
+      .loadFromUri(MODEL_URL);
+
+    status.innerText =
+      "Face recognition ready ✅";
+
+  }
+
+  catch(error) {
+
+    console.error(error);
+
+    status.innerText =
+      "Model Error: " + error.message;
+
+  }
+
+}
+
+
+// ==========================================
+// OPEN CAMERA
+// ==========================================
+
+async function openCamera() {
+
+  const video =
+    document.getElementById("camera");
+
+  const status =
+    document.getElementById("status");
+
+  const registerBtn =
+    document.getElementById("registerBtn");
+
+
+  status.innerText =
+    "Requesting camera permission...";
+
+
+  try {
+
+
+    // Check browser support
+
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      throw new Error(
+        "Camera is not supported by this browser."
+      );
+
+    }
+
+
+    // Open front camera
+
+    const stream =
+      await navigator.mediaDevices.getUserMedia({
+
+        video: {
+          facingMode: "user"
+        },
+
+        audio: false
+
+      });
+
+
+    // Show camera
+
+    video.srcObject =
+      stream;
+
+
+    status.innerText =
+      "Camera is working ✅ Please keep your face in front of the camera.";
+
+
+    // Enable register button
+
+    registerBtn.disabled =
+      false;
+
+
+  }
+
+  catch(error) {
+
+    console.error(error);
+
+    status.innerText =
+      "Camera Error: " +
+      error.message;
+
+  }
+
+}
+
+
+// ==========================================
+// REGISTER FACE
+// ==========================================
+
+async function registerFace() {
+
+  const pid =
+    document
+      .getElementById("pid")
+      .value
+      .trim();
+
+
+  const studentName =
+    document
+      .getElementById("studentName")
+      .value
+      .trim();
+
+
+  const className =
+    document
+      .getElementById("className")
+      .value;
+
+
+  const status =
+    document
+      .getElementById("status");
+
+
+  // ========================================
+  // VALIDATION
+  // ========================================
+
+  if (
+    !pid ||
+    !studentName ||
+    !className
+  ) {
+
+    alert(
+      "PID, Student Name and Class are required."
+    );
+
+    return;
+
+  }
+
+
+  status.innerText =
+    "Detecting face...";
+
+
+  try {
+
+
+    const video =
+      document.getElementById("camera");
+
+
+    // ======================================
+    // DETECT FACE
+    // ======================================
+
+    const detection =
+      await faceapi
+
+        .detectSingleFace(
+          video,
+          new faceapi.SsdMobilenetv1Options()
+        )
+
+        .withFaceLandmarks()
+
+        .withFaceDescriptor();
+
+
+    // ======================================
+    // FACE NOT FOUND
+    // ======================================
+
+    if (!detection) {
+
+      status.innerText =
+        "Face not detected ❌ Please look at the camera.";
+
+      return;
+
+    }
+
+
+    // ======================================
+    // GET FACE EMBEDDING
+    // ======================================
+
+    const embedding =
+      Array.from(
+        detection.descriptor
+      );
+
+
+    status.innerText =
+      "Face detected ✅ Saving...";
+
+
+    // ======================================
+    // SEND TO APPS SCRIPT
+    // ======================================
+
+    await fetch(
+
+      SCRIPT_URL,
+
+      {
+
+        method: "POST",
+
+        mode: "no-cors",
+
+        headers: {
+
+          "Content-Type":
+            "text/plain"
+
+        },
+
+        body: JSON.stringify({
+
+          action:
+            "saveFace",
+
+          pid:
+            pid,
+
+          studentName:
+            studentName,
+
+          className:
+            className,
+
+          embedding:
+            embedding
+
+        })
+
+      }
+
+    );
+
+
+    // ======================================
+    // SUCCESS
+    // ======================================
+
+    status.innerText =
+      "Face registered successfully ✅";
+
+
+    // Disable button
+
+    document
+      .getElementById("registerBtn")
+      .disabled = true;
+
+
+    // Stop camera
+
+    const stream =
+      video.srcObject;
+
+    if (stream) {
+
+      stream
+        .getTracks()
+        .forEach(
+          track => track.stop()
+        );
+
+    }
+
+
+  }
+
+  catch(error) {
+
+    console.error(error);
+
+    status.innerText =
+      "Face Registration Error: " +
+      error.message;
+
+  }
+
+}
+
+
+// ==========================================
+// PAGE LOAD
+// ==========================================
+
+window.addEventListener(
+  "load",
+  loadModels
+);
+
+</script>
+
+
+</body>
+
+</html>
